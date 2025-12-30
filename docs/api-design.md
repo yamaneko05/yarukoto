@@ -82,6 +82,8 @@ Better Auth が内部的に処理するエンドポイント:
 |----------|------|----------|
 | `getUserSettings` | ユーザー設定を取得 | 設定画面 |
 | `updateUserSettings` | ユーザー設定を更新 | 設定画面 |
+| `changeEmail` | メールアドレスを変更 | 設定画面 |
+| `changePassword` | パスワードを変更 | 設定画面 |
 | `deleteAccount` | アカウントを削除 | 設定画面 |
 
 ---
@@ -120,18 +122,17 @@ type GetTasksByDateInput = {
   date: string; // ISO 8601形式 (YYYY-MM-DD)
 };
 
-// 出力（過去の日付）
+// 出力（統一型）
 type GetTasksByDateOutput = ActionResult<{
-  completed: Task[];    // その日に完了したタスク
-  skipped: Task[];      // その日にやらないにしたタスク
-  scheduled: Task[];    // その日が予定日のタスク
-}>;
-
-// 出力（未来の日付）
-type GetTasksByDateOutput = ActionResult<{
-  scheduled: Task[];    // その日が予定日のタスク
+  isPast: boolean;       // 過去の日付かどうか
+  isFuture: boolean;     // 未来の日付かどうか
+  completed: Task[];     // その日に完了したタスク（過去のみ、未来は空配列）
+  skipped: Task[];       // その日にやらないにしたタスク（過去のみ、未来は空配列）
+  scheduled: Task[];     // その日が予定日のタスク
 }>;
 ```
+
+※ 未来の日付の場合、`completed` と `skipped` は空配列を返す
 
 #### searchTasks
 キーワードやフィルター条件でタスクを検索する。
@@ -144,13 +145,17 @@ type SearchTasksInput = {
   keyword?: string;                        // 検索キーワード（タスク名、メモ）
   status?: "all" | "pending" | "completed" | "skipped";
   categoryId?: string | null;              // null = カテゴリなし
+  priority?: Priority | "all" | null;      // null = 優先度なし、"all" = すべて
   dateFrom?: string;                       // 期間指定（開始）
   dateTo?: string;                         // 期間指定（終了）
 };
 
-// 出力
+// 出力（日付でグループ化）
 type SearchTasksOutput = ActionResult<{
-  tasks: Task[];
+  groups: {
+    date: string | null;  // 予定日（null = 日付未定）
+    tasks: Task[];
+  }[];
   total: number;
 }>;
 ```
@@ -394,6 +399,46 @@ type UpdateUserSettingsOutput = ActionResult<{
 }>;
 ```
 
+#### changeEmail
+メールアドレスを変更する。
+
+**必要な理由**: 設定画面からメールアドレスを変更するため。
+
+```typescript
+// 入力
+type ChangeEmailInput = {
+  newEmail: string;      // 新しいメールアドレス
+  currentPassword: string;  // 現在のパスワード（本人確認）
+};
+
+// 出力
+type ChangeEmailOutput = ActionResult<{
+  email: string;  // 変更後のメールアドレス
+}>;
+```
+
+※ Better Auth の `changeEmail` API を内部で使用
+
+#### changePassword
+パスワードを変更する。
+
+**必要な理由**: 設定画面からパスワードを変更するため。
+
+```typescript
+// 入力
+type ChangePasswordInput = {
+  currentPassword: string;  // 現在のパスワード
+  newPassword: string;      // 新しいパスワード
+};
+
+// 出力
+type ChangePasswordOutput = ActionResult<{
+  updated: true;
+}>;
+```
+
+※ Better Auth の `changePassword` API を内部で使用
+
 #### deleteAccount
 アカウントを削除する。
 
@@ -407,7 +452,7 @@ type DeleteAccountInput = {
 
 // 出力
 type DeleteAccountOutput = ActionResult<{
-  success: true;
+  deleted: true;
 }>;
 ```
 
@@ -486,7 +531,7 @@ const CATEGORY_COLORS = [
 
 | フィールド | ルール |
 |-----------|--------|
-| title | 必須、1文字以上、空白のみ不可 |
+| title | 必須、1〜500文字、空白のみ不可 |
 | memo | 任意、最大10000文字 |
 | scheduledAt | 任意、有効な日付形式 |
 | priority | 任意、HIGH/MEDIUM/LOW のいずれか |
