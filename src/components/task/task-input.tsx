@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Calendar, Send } from "lucide-react";
+import { Calendar, Send, Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 interface TaskInputProps {
   onSubmit: (title: string, scheduledAt?: string) => void;
+  onOpenDetailDialog?: () => void;
   defaultDate?: string;
   isLoading?: boolean;
   placeholder?: string;
@@ -15,6 +16,7 @@ interface TaskInputProps {
 
 export function TaskInput({
   onSubmit,
+  onOpenDetailDialog,
   defaultDate,
   isLoading = false,
   placeholder = "新しいタスクを入力...",
@@ -57,6 +59,17 @@ export function TaskInput({
       className="sticky bottom-0 bg-background border-t p-3"
     >
       <div className="flex items-center gap-2">
+        {onOpenDetailDialog && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={onOpenDetailDialog}
+            aria-label="詳細入力でタスクを作成"
+          >
+            <Plus className="h-5 w-5" />
+          </Button>
+        )}
         <div className="relative flex-1">
           <Input
             ref={inputRef}

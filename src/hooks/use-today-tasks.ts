@@ -25,6 +25,14 @@ export function useTodayTasks() {
   });
 }
 
+export interface CreateTaskInput {
+  title: string;
+  scheduledAt?: string;
+  categoryId?: string;
+  priority?: "HIGH" | "MEDIUM" | "LOW";
+  memo?: string;
+}
+
 export function useCreateTask() {
   const queryClient = useQueryClient();
 
@@ -32,17 +40,23 @@ export function useCreateTask() {
     mutationFn: async ({
       title,
       scheduledAt,
-    }: {
-      title: string;
-      scheduledAt?: string;
-    }) => {
-      const result = await createTask({ title, scheduledAt });
+      categoryId,
+      priority,
+      memo,
+    }: CreateTaskInput) => {
+      const result = await createTask({
+        title,
+        scheduledAt,
+        categoryId,
+        priority,
+        memo,
+      });
       if (!result.success) {
         throw new Error(result.error);
       }
       return result.data.task;
     },
-    onMutate: async ({ title, scheduledAt }) => {
+    onMutate: async ({ title, scheduledAt, categoryId, priority, memo }) => {
       await queryClient.cancelQueries({ queryKey: ["todayTasks"] });
 
       const previous = queryClient.getQueryData<TodayTasks>(["todayTasks"]);
@@ -51,17 +65,17 @@ export function useCreateTask() {
       const optimisticTask: Task = {
         id: `temp-${Date.now()}`,
         title,
-        memo: null,
+        memo: memo || null,
         status: "PENDING",
-        priority: null,
+        priority: priority || null,
         scheduledAt: scheduledAt || null,
         completedAt: null,
         skippedAt: null,
         skipReason: null,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        categoryId: null,
-        category: null,
+        categoryId: categoryId || null,
+        category: null, // Category will be fetched on refetch
       };
 
       if (previous) {
