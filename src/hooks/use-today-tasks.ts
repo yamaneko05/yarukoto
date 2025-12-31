@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   getTodayTasks,
   createTask,
+  updateTask,
   completeTask,
   uncompleteTask,
   skipTask,
@@ -317,6 +318,83 @@ export function useUnskipTask() {
         throw new Error(result.error);
       }
       return result.data.task;
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["todayTasks"] });
+    },
+  });
+}
+
+export interface UpdateTaskInput {
+  id: string;
+  title?: string;
+  scheduledAt?: string | null;
+  categoryId?: string | null;
+  priority?: "HIGH" | "MEDIUM" | "LOW" | null;
+  memo?: string | null;
+}
+
+export function useUpdateTask() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      id,
+      title,
+      scheduledAt,
+      categoryId,
+      priority,
+      memo,
+    }: UpdateTaskInput) => {
+      const result = await updateTask({
+        id,
+        title,
+        scheduledAt: scheduledAt === null ? undefined : scheduledAt,
+        categoryId: categoryId === null ? undefined : categoryId,
+        priority: priority === null ? undefined : priority,
+        memo: memo === null ? undefined : memo,
+      });
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+      return result.data.task;
+    },
+    onMutate: async ({ id, title, scheduledAt, categoryId, priority, memo }) => {
+      await queryClient.cancelQueries({ queryKey: ["todayTasks"] });
+      const previous = queryClient.getQueryData<TodayTasks>(["todayTasks"]);
+
+      if (previous) {
+        const updateTaskInList = (tasks: Task[]): Task[] =>
+          tasks.map((t) => {
+            if (t.id === id) {
+              return {
+                ...t,
+                title: title ?? t.title,
+                scheduledAt: scheduledAt !== undefined ? scheduledAt : t.scheduledAt,
+                categoryId: categoryId !== undefined ? categoryId : t.categoryId,
+                priority: priority !== undefined ? priority : t.priority,
+                memo: memo !== undefined ? memo : t.memo,
+                updatedAt: new Date().toISOString(),
+              };
+            }
+            return t;
+          });
+
+        queryClient.setQueryData<TodayTasks>(["todayTasks"], {
+          overdue: updateTaskInList(previous.overdue),
+          today: updateTaskInList(previous.today),
+          undated: updateTaskInList(previous.undated),
+          completed: updateTaskInList(previous.completed),
+          skipped: updateTaskInList(previous.skipped),
+        });
+      }
+
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(["todayTasks"], context.previous);
+      }
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["todayTasks"] });

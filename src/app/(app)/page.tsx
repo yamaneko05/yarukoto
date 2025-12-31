@@ -6,11 +6,14 @@ import {
   TaskSection,
   TaskInput,
   TaskCreateDialog,
+  TaskEditDialog,
   type TaskCreateData,
+  type TaskEditData,
 } from "@/components/task";
 import {
   useTodayTasks,
   useCreateTask,
+  useUpdateTask,
   useCompleteTask,
   useUncompleteTask,
   useSkipTask,
@@ -28,6 +31,7 @@ export default function HomePage() {
   const { data: tasks, isLoading, error } = useTodayTasks();
   const { data: categories = [] } = useCategories();
   const createTask = useCreateTask();
+  const updateTask = useUpdateTask();
   const completeTask = useCompleteTask();
   const uncompleteTask = useUncompleteTask();
   const skipTask = useSkipTask();
@@ -56,8 +60,15 @@ export default function HomePage() {
 
   const handleEdit = (task: Task) => {
     setEditingTask(task);
-    // TODO: Open edit modal
-    console.log("Edit task:", task);
+  };
+
+  const handleEditTaskWithDetails = async (data: TaskEditData) => {
+    try {
+      await updateTask.mutateAsync(data);
+      setEditingTask(null);
+    } catch {
+      // Error is handled by the mutation
+    }
   };
 
   const handleSkip = (id: string) => {
@@ -207,6 +218,15 @@ export default function HomePage() {
         categories={categories}
         defaultDate={today}
         isLoading={createTask.isPending}
+      />
+
+      <TaskEditDialog
+        open={editingTask !== null}
+        onOpenChange={(open) => !open && setEditingTask(null)}
+        onSave={handleEditTaskWithDetails}
+        task={editingTask}
+        categories={categories}
+        isLoading={updateTask.isPending}
       />
     </div>
   );

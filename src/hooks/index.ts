@@ -1,6 +1,7 @@
 export {
   useTodayTasks,
   useCreateTask,
+  useUpdateTask,
   useCompleteTask,
   useUncompleteTask,
   useSkipTask,
