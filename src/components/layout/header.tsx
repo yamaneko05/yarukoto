@@ -31,6 +31,14 @@ export function Header() {
             </SheetHeader>
             <nav className="mt-6 space-y-1">
               <Link
+                href="/search"
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-accent transition-colors"
+              >
+                <Search className="h-5 w-5 text-muted-foreground" />
+                <span>検索</span>
+              </Link>
+              <Link
                 href="/categories"
                 onClick={() => setOpen(false)}
                 className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-accent transition-colors"

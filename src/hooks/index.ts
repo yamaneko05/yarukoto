@@ -21,3 +21,9 @@ export {
   useUpdateCategory,
   useDeleteCategory,
 } from "./use-categories";
+
+export {
+  useSearchTasks,
+  useInvalidateSearchTasks,
+  type SearchFilters,
+} from "./use-search-tasks";
