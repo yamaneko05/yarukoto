@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Header } from "@/components/layout";
-import { DateNavigation } from "@/components/layout";
+import { Header, DateNavigation, CategoryFilter } from "@/components/layout";
 import {
   TaskSection,
   TaskInput,
@@ -38,6 +37,7 @@ export default function DatePage() {
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [skippingTask, setSkippingTask] = useState<Task | null>(null);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
 
   const { settings } = useSettings();
   const { data: tasks, isLoading, error } = useDateTasks(dateParam);
@@ -134,6 +134,14 @@ export default function DatePage() {
     }
   };
 
+  const filterTasksByCategory = (taskList: Task[]): Task[] => {
+    if (selectedCategoryId === null) return taskList;
+    if (selectedCategoryId === "none") {
+      return taskList.filter((task) => !task.categoryId);
+    }
+    return taskList.filter((task) => task.categoryId === selectedCategoryId);
+  };
+
   if (isLoading) {
     return (
       <div className="flex-1 bg-background">
@@ -158,11 +166,19 @@ export default function DatePage() {
     );
   }
 
+  const filteredTasks = tasks
+    ? {
+        scheduled: filterTasksByCategory(tasks.scheduled),
+        completed: filterTasksByCategory(tasks.completed),
+        skipped: filterTasksByCategory(tasks.skipped),
+      }
+    : null;
+
   const hasNoTasks =
-    !tasks ||
-    (tasks.scheduled.length === 0 &&
-      tasks.completed.length === 0 &&
-      tasks.skipped.length === 0);
+    !filteredTasks ||
+    (filteredTasks.scheduled.length === 0 &&
+      filteredTasks.completed.length === 0 &&
+      filteredTasks.skipped.length === 0);
 
   return (
     <div className="flex-1 bg-background flex flex-col">
@@ -175,6 +191,12 @@ export default function DatePage() {
           onNext={handleNext}
           onToday={handleToday}
           onDatePicker={handleDatePicker}
+        />
+
+        <CategoryFilter
+          categories={categories}
+          selectedCategoryId={selectedCategoryId}
+          onSelectCategory={setSelectedCategoryId}
         />
 
         <main className="flex-1 overflow-auto pb-20 md:pb-4">
@@ -218,7 +240,7 @@ export default function DatePage() {
                   {/* Completed on this day */}
                   <TaskSection
                     title="この日に完了"
-                    tasks={tasks?.completed || []}
+                    tasks={filteredTasks?.completed || []}
                     variant="completed"
                     defaultCollapsed={settings.autoCollapseCompleted}
                     onComplete={handleComplete}
@@ -231,7 +253,7 @@ export default function DatePage() {
                   {/* Skipped on this day */}
                   <TaskSection
                     title="この日にやらない"
-                    tasks={tasks?.skipped || []}
+                    tasks={filteredTasks?.skipped || []}
                     variant="skipped"
                     defaultCollapsed={settings.autoCollapseSkipped}
                     onComplete={handleComplete}
@@ -244,7 +266,7 @@ export default function DatePage() {
                   {/* Scheduled for this day */}
                   <TaskSection
                     title="この日が予定日"
-                    tasks={tasks?.scheduled || []}
+                    tasks={filteredTasks?.scheduled || []}
                     onComplete={handleComplete}
                     onUncomplete={handleUncomplete}
                     onEdit={handleEdit}
@@ -259,7 +281,7 @@ export default function DatePage() {
               {isFuture && (
                 <TaskSection
                   title="予定タスク"
-                  tasks={tasks?.scheduled || []}
+                  tasks={filteredTasks?.scheduled || []}
                   onComplete={handleComplete}
                   onUncomplete={handleUncomplete}
                   onEdit={handleEdit}

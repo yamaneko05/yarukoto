@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Header, DateNavigation } from "@/components/layout";
+import { Header, DateNavigation, CategoryFilter } from "@/components/layout";
 import {
   TaskSection,
   TaskInput,
@@ -35,6 +35,7 @@ export default function HomePage() {
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [skippingTask, setSkippingTask] = useState<Task | null>(null);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
 
   const { settings } = useSettings();
   const { data: tasks, isLoading, error } = useTodayTasks();
@@ -124,6 +125,14 @@ export default function HomePage() {
     setDatePickerOpen(true);
   };
 
+  const filterTasksByCategory = (taskList: Task[]): Task[] => {
+    if (selectedCategoryId === null) return taskList;
+    if (selectedCategoryId === "none") {
+      return taskList.filter((task) => !task.categoryId);
+    }
+    return taskList.filter((task) => task.categoryId === selectedCategoryId);
+  };
+
   if (isLoading) {
     return (
       <div className="flex-1 bg-background">
@@ -148,13 +157,23 @@ export default function HomePage() {
     );
   }
 
+  const filteredTasks = tasks
+    ? {
+        overdue: filterTasksByCategory(tasks.overdue),
+        today: filterTasksByCategory(tasks.today),
+        undated: filterTasksByCategory(tasks.undated),
+        completed: filterTasksByCategory(tasks.completed),
+        skipped: filterTasksByCategory(tasks.skipped),
+      }
+    : null;
+
   const hasNoTasks =
-    !tasks ||
-    (tasks.overdue.length === 0 &&
-      tasks.today.length === 0 &&
-      tasks.undated.length === 0 &&
-      tasks.completed.length === 0 &&
-      tasks.skipped.length === 0);
+    !filteredTasks ||
+    (filteredTasks.overdue.length === 0 &&
+      filteredTasks.today.length === 0 &&
+      filteredTasks.undated.length === 0 &&
+      filteredTasks.completed.length === 0 &&
+      filteredTasks.skipped.length === 0);
 
   return (
     <div className="flex-1 bg-background flex flex-col">
@@ -167,6 +186,12 @@ export default function HomePage() {
           onNext={handleNext}
           onToday={() => {}}
           onDatePicker={handleDatePicker}
+        />
+
+        <CategoryFilter
+          categories={categories}
+          selectedCategoryId={selectedCategoryId}
+          onSelectCategory={setSelectedCategoryId}
         />
 
         <main className="flex-1 overflow-auto pb-20 md:pb-4">
@@ -191,7 +216,7 @@ export default function HomePage() {
               {/* Overdue tasks */}
               <TaskSection
                 title="期限超過"
-                tasks={tasks?.overdue || []}
+                tasks={filteredTasks?.overdue || []}
                 variant="overdue"
                 onComplete={handleComplete}
                 onUncomplete={handleUncomplete}
@@ -204,7 +229,7 @@ export default function HomePage() {
               {/* Today's tasks */}
               <TaskSection
                 title="今日"
-                tasks={tasks?.today || []}
+                tasks={filteredTasks?.today || []}
                 onComplete={handleComplete}
                 onUncomplete={handleUncomplete}
                 onEdit={handleEdit}
@@ -215,7 +240,7 @@ export default function HomePage() {
               {/* Undated tasks */}
               <TaskSection
                 title="日付未定"
-                tasks={tasks?.undated || []}
+                tasks={filteredTasks?.undated || []}
                 onComplete={handleComplete}
                 onUncomplete={handleUncomplete}
                 onEdit={handleEdit}
@@ -226,7 +251,7 @@ export default function HomePage() {
               {/* Completed tasks */}
               <TaskSection
                 title="今日完了"
-                tasks={tasks?.completed || []}
+                tasks={filteredTasks?.completed || []}
                 variant="completed"
                 defaultCollapsed={settings.autoCollapseCompleted}
                 onComplete={handleComplete}
@@ -239,7 +264,7 @@ export default function HomePage() {
               {/* Skipped tasks */}
               <TaskSection
                 title="今日やらない"
-                tasks={tasks?.skipped || []}
+                tasks={filteredTasks?.skipped || []}
                 variant="skipped"
                 defaultCollapsed={settings.autoCollapseSkipped}
                 onComplete={handleComplete}
