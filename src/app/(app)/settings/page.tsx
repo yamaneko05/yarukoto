@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Mail, LogOut, Trash2 } from "lucide-react";
+import { ArrowLeft, Mail, LogOut, Trash2, Sun, Moon, Monitor } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { signOut, useSession } from "@/lib/auth-client";
 import { deleteAccount } from "@/actions";
-import { useSettings } from "@/hooks";
+import { useSettings, useTheme, type Theme } from "@/hooks";
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -31,6 +31,7 @@ export default function SettingsPage() {
     toggleAutoCollapseCompleted,
     toggleAutoCollapseSkipped,
   } = useSettings();
+  const { theme, setTheme } = useTheme();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isDeleting, startDeleteTransition] = useTransition();
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -91,6 +92,53 @@ export default function SettingsPage() {
                     {session?.user?.email || "読み込み中..."}
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Appearance Section */}
+        <section>
+          <h2 className="text-sm font-medium text-muted-foreground mb-3">
+            外観
+          </h2>
+          <div className="bg-card rounded-lg border border-border overflow-hidden">
+            <div className="p-4">
+              <div className="text-sm font-medium mb-3">テーマ</div>
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  onClick={() => setTheme("light")}
+                  className={`flex flex-col items-center gap-2 p-3 rounded-lg border-2 transition-colors ${
+                    theme === "light"
+                      ? "border-primary bg-primary/5"
+                      : "border-border hover:bg-accent"
+                  }`}
+                >
+                  <Sun className="h-5 w-5" />
+                  <span className="text-xs font-medium">ライト</span>
+                </button>
+                <button
+                  onClick={() => setTheme("dark")}
+                  className={`flex flex-col items-center gap-2 p-3 rounded-lg border-2 transition-colors ${
+                    theme === "dark"
+                      ? "border-primary bg-primary/5"
+                      : "border-border hover:bg-accent"
+                  }`}
+                >
+                  <Moon className="h-5 w-5" />
+                  <span className="text-xs font-medium">ダーク</span>
+                </button>
+                <button
+                  onClick={() => setTheme("system")}
+                  className={`flex flex-col items-center gap-2 p-3 rounded-lg border-2 transition-colors ${
+                    theme === "system"
+                      ? "border-primary bg-primary/5"
+                      : "border-border hover:bg-accent"
+                  }`}
+                >
+                  <Monitor className="h-5 w-5" />
+                  <span className="text-xs font-medium">システム</span>
+                </button>
               </div>
             </div>
           </div>

@@ -27,3 +27,5 @@ export {
   useInvalidateSearchTasks,
   type SearchFilters,
 } from "./use-search-tasks";
+
+export { useTheme, type Theme } from "./use-theme";
