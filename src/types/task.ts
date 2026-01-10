@@ -49,3 +49,14 @@ export type SearchTasksResult = {
   groups: TaskGroup[];
   total: number;
 };
+
+export type DayTaskStats = {
+  total: number;
+  completed: number;
+  overdue: number;
+  skipped: number;
+};
+
+export type MonthlyTaskStats = {
+  [date: string]: DayTaskStats;
+};

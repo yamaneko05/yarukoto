@@ -9,6 +9,7 @@ export {
   skipTask,
   unskipTask,
   deleteTask,
+  getMonthlyTaskStats,
 } from "./task";
 
 export {

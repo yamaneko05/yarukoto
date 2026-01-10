@@ -11,6 +11,8 @@ export {
 
 export { useDateTasks } from "./use-date-tasks";
 
+export { useMonthlyTaskStats } from "./use-monthly-task-stats";
+
 export { useTaskMutations } from "./use-task-mutations";
 
 export { useSettings } from "./use-settings";

@@ -10,6 +10,7 @@ import {
   SkipReasonDialog,
   type TaskEditData,
 } from "@/components/task";
+import { CalendarDialog } from "@/components/calendar";
 import {
   useTodayTasks,
   useCreateTask,
@@ -303,31 +304,13 @@ export default function HomePage() {
         isLoading={skipTask.isPending}
       />
 
-      {/* Date picker dialog */}
-      {datePickerOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center"
-          onClick={() => setDatePickerOpen(false)}
-        >
-          <div
-            className="bg-background p-4 rounded-lg shadow-lg"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <input
-              type="date"
-              defaultValue={today}
-              onChange={(e) => {
-                if (e.target.value) {
-                  handleNavigate(e.target.value);
-                  setDatePickerOpen(false);
-                }
-              }}
-              className="p-2 border rounded"
-              autoFocus
-            />
-          </div>
-        </div>
-      )}
+      {/* Calendar dialog */}
+      <CalendarDialog
+        open={datePickerOpen}
+        onOpenChange={setDatePickerOpen}
+        currentDate={new Date()}
+        onSelectDate={handleNavigate}
+      />
     </div>
   );
 }

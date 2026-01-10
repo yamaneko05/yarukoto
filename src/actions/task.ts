@@ -10,6 +10,7 @@ import {
   type TodayTasks,
   type DateTasks,
   type SearchTasksResult,
+  type MonthlyTaskStats,
 } from "@/types";
 import {
   createTaskSchema,
@@ -18,11 +19,13 @@ import {
   skipTaskSchema,
   getTasksByDateSchema,
   searchTasksSchema,
+  getMonthlyTaskStatsSchema,
   type CreateTaskInput,
   type UpdateTaskInput,
   type SkipTaskInput,
   type GetTasksByDateInput,
   type SearchTasksInput,
+  type GetMonthlyTaskStatsInput,
 } from "@/lib/validations";
 import type { Task as PrismaTask, Category } from "@/generated/prisma/client";
 
@@ -570,5 +573,111 @@ export async function deleteTask(input: {
   } catch (error) {
     console.error("deleteTask error:", error);
     return failure("タスクの削除に失敗しました", "INTERNAL_ERROR");
+  }
+}
+
+export async function getMonthlyTaskStats(
+  input: GetMonthlyTaskStatsInput,
+): Promise<ActionResult<MonthlyTaskStats>> {
+  try {
+    const parsed = getMonthlyTaskStatsSchema.safeParse(input);
+    if (!parsed.success) {
+      return failure(parsed.error.issues[0].message, "VALIDATION_ERROR");
+    }
+
+    const user = await getRequiredUser();
+    const { month } = parsed.data;
+    const today = getTodayString();
+
+    // Parse month (YYYY-MM)
+    const [year, monthNum] = month.split("-").map(Number);
+    const firstDay = new Date(Date.UTC(year, monthNum - 1, 1));
+    const lastDay = new Date(Date.UTC(year, monthNum, 0, 23, 59, 59, 999));
+
+    // Get all tasks for this month
+    const tasks = await prisma.task.findMany({
+      where: {
+        userId: user.id,
+        OR: [
+          // Tasks scheduled in this month
+          {
+            scheduledAt: {
+              gte: firstDay,
+              lte: lastDay,
+            },
+          },
+          // Tasks completed in this month
+          {
+            completedAt: {
+              gte: firstDay,
+              lte: lastDay,
+            },
+          },
+          // Tasks skipped in this month
+          {
+            skippedAt: {
+              gte: firstDay,
+              lte: lastDay,
+            },
+          },
+        ],
+      },
+    });
+
+    // Build stats by date
+    const stats: MonthlyTaskStats = {};
+
+    for (const task of tasks) {
+      const dates = new Set<string>();
+
+      // Add scheduled date
+      if (task.scheduledAt && task.scheduledAt >= firstDay && task.scheduledAt <= lastDay) {
+        dates.add(task.scheduledAt.toISOString().split("T")[0]);
+      }
+
+      // Add completed date
+      if (task.completedAt && task.completedAt >= firstDay && task.completedAt <= lastDay) {
+        dates.add(task.completedAt.toISOString().split("T")[0]);
+      }
+
+      // Add skipped date
+      if (task.skippedAt && task.skippedAt >= firstDay && task.skippedAt <= lastDay) {
+        dates.add(task.skippedAt.toISOString().split("T")[0]);
+      }
+
+      // Update stats for each relevant date
+      for (const dateStr of dates) {
+        if (!stats[dateStr]) {
+          stats[dateStr] = { total: 0, completed: 0, overdue: 0, skipped: 0 };
+        }
+
+        // Count based on scheduled date for this day
+        const isScheduledForThisDay = task.scheduledAt?.toISOString().split("T")[0] === dateStr;
+
+        if (isScheduledForThisDay) {
+          stats[dateStr].total++;
+
+          // Check if overdue
+          if (task.status === "PENDING" && dateStr < today) {
+            stats[dateStr].overdue++;
+          }
+        }
+
+        // Count completed on this day
+        if (task.completedAt?.toISOString().split("T")[0] === dateStr) {
+          stats[dateStr].completed++;
+        }
+
+        // Count skipped on this day
+        if (task.skippedAt?.toISOString().split("T")[0] === dateStr) {
+          stats[dateStr].skipped++;
+        }
+      }
+    }
+
+    return success(stats);
+  } catch (error) {
+    console.error("getMonthlyTaskStats error:", error);
+    return failure("タスク統計の取得に失敗しました", "INTERNAL_ERROR");
   }
 }

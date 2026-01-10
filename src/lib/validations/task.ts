@@ -64,9 +64,18 @@ export const searchTasksSchema = z.object({
   dateTo: dateStringSchema.optional(),
 });
 
+export const getMonthlyTaskStatsSchema = z.object({
+  month: z
+    .string()
+    .regex(/^\d{4}-\d{2}$/, "月はYYYY-MM形式で入力してください"),
+});
+
 export type CreateTaskInput = z.infer<typeof createTaskSchema>;
 export type UpdateTaskInput = z.infer<typeof updateTaskSchema>;
 export type TaskIdInput = z.infer<typeof taskIdSchema>;
 export type SkipTaskInput = z.infer<typeof skipTaskSchema>;
 export type GetTasksByDateInput = z.infer<typeof getTasksByDateSchema>;
 export type SearchTasksInput = z.infer<typeof searchTasksSchema>;
+export type GetMonthlyTaskStatsInput = z.infer<
+  typeof getMonthlyTaskStatsSchema
+>;
